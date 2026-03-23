@@ -1,9 +1,18 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { UtensilsCrossed } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useAuth } from '../context/AuthContext'
 
 const Welcome: React.FC = () => {
+  const navigate = useNavigate()
+  const { user, loading } = useAuth()
+
+  useEffect(() => {
+    if (user && !loading) {
+      navigate('/dashboard')
+    }
+  }, [user, loading, navigate])
   return (
     <div className="welcome-container" style={{
       height: '100vh',

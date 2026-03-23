@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { UserPlus, Mail, Lock, User, AlertCircle, ChefHat, UserCircle, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useAuth } from '../context/AuthContext'
 
 const Signup: React.FC = () => {
   const [step, setStep] = useState(1)
@@ -21,6 +22,13 @@ const Signup: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { user, loading: authLoading } = useAuth()
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate('/dashboard')
+    }
+  }, [user, authLoading, navigate])
 
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault()

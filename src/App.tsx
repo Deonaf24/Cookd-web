@@ -8,20 +8,28 @@ import ChefProfile from './pages/ChefProfile'
 import MealDetail from './pages/MealDetail'
 import WeeklySelection from './pages/WeeklySelection'
 
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Welcome />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/browse" element={<Browse />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/chef/:id" element={<ChefProfile />} />
-        <Route path="/meal/:id" element={<MealDetail />} />
-        <Route path="/selection/:chefId" element={<WeeklySelection />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Welcome />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+
+          {/* Protected Routes */}
+          <Route path="/browse" element={<ProtectedRoute><Browse /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/chef/:id" element={<ProtectedRoute><ChefProfile /></ProtectedRoute>} />
+          <Route path="/meal/:id" element={<ProtectedRoute><MealDetail /></ProtectedRoute>} />
+          <Route path="/selection/:chefId" element={<ProtectedRoute><WeeklySelection /></ProtectedRoute>} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   )
 }
 

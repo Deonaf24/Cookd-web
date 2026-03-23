@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
+
+import { useAuth } from '../context/AuthContext'
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -10,6 +12,13 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { user, loading: authLoading } = useAuth()
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate('/dashboard')
+    }
+  }, [user, authLoading, navigate])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

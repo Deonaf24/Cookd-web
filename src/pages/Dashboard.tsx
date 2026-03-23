@@ -695,32 +695,19 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
   )
 }
 
+import { useAuth } from '../context/AuthContext'
+
 const Dashboard: React.FC = () => {
-  const [profile, setProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const { profile } = useAuth()
 
-  useEffect(() => {
-    fetchUserData()
-  }, [])
-
-  const fetchUserData = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      setProfile(profile)
-    }
-    setLoading(false)
-  }
-
-  if (loading) return <Layout><div style={{ textAlign: 'center', padding: '5rem' }}>Loading dashboard...</div></Layout>
+  // Note: loading state and auth check is handled by ProtectedRoute in App.tsx
+  // If we reach this point, profile is already being fetched/available in context
+  
+  if (!profile) return <Layout><div style={{ textAlign: 'center', padding: '5rem' }}>Loading profile...</div></Layout>
 
   return (
     <Layout>
-      {profile?.role === 'chef' ? (
+      {profile.role === 'chef' ? (
         <ChefDashboard profile={profile} />
       ) : (
         <DinerDashboard profile={profile} />
