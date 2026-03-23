@@ -21,11 +21,12 @@ const Welcome: React.FC = () => {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="glass"
+        className="glass mobile-p-1"
         style={{
           padding: '4rem 3rem',
-          borderRadius: '40px',
+          borderRadius: 'var(--radius-lg)',
           maxWidth: '700px',
+          width: '100%',
           border: '1px solid rgba(255,255,255,0.6)',
           boxShadow: '0 30px 60px -12px rgba(0,0,0,0.15)'
         }}
@@ -43,11 +44,11 @@ const Welcome: React.FC = () => {
           delivered to your doorstep.
         </p>
         
-        <div style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center' }}>
-          <Link to="/signup" className="btn-primary" style={{ padding: '1.25rem 3rem', fontSize: '1.1rem' }}>
+        <div className="mobile-stack" style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center' }}>
+          <Link to="/signup" className="btn-primary">
             Get Started
           </Link>
-          <Link to="/login" className="btn-secondary" style={{ padding: '1.25rem 3rem', fontSize: '1.1rem' }}>
+          <Link to="/login" className="btn-secondary">
             Sign In
           </Link>
         </div>

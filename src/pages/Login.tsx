@@ -37,12 +37,12 @@ const Login: React.FC = () => {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass"
+        className="glass mobile-p-1"
         style={{
           width: '100%',
           maxWidth: '440px',
           padding: '3rem',
-          borderRadius: '24px'
+          borderRadius: 'var(--radius-lg)'
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>

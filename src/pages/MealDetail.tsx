@@ -47,7 +47,7 @@ const MealDetail: React.FC = () => {
 
   return (
     <Layout>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      <div className="container" style={{ paddingBottom: '5rem', paddingTop: '2rem' }}>
         <button 
           onClick={() => navigate(-1)} 
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-dim)', marginBottom: '2rem' }}
@@ -55,12 +55,13 @@ const MealDetail: React.FC = () => {
           <ArrowLeft size={20} /> Back
         </button>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem' }}>
+        <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem' }}>
           <div>
             <div style={{ 
-              height: '340px', 
+              height: 'auto',
+              minHeight: '280px', 
               background: meal.image_name ? `url(${getPublicUrl(BUCKETS.MEALS, meal.image_name)}) center/cover` : 'var(--bg-soft)',
-              borderRadius: '32px',
+              borderRadius: 'var(--radius-lg)',
               marginBottom: '2rem',
               boxShadow: 'var(--shadow-md)',
               display: 'flex',
@@ -90,7 +91,7 @@ const MealDetail: React.FC = () => {
                 <Flame size={24} color="var(--primary)" />
                 Nutrition Facts
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div className="mobile-grid-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                 <div>
                   <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Calories</p>
                   <p style={{ fontSize: '1.5rem', fontWeight: 800 }}>{meal.calories}</p>

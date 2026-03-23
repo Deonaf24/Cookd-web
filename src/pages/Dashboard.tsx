@@ -92,21 +92,22 @@ const DinerDashboard: React.FC<{ profile: any }> = ({ profile }) => {
   const nextSunday = getNextSunday()
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+    <div className="container" style={{ paddingTop: '2rem', paddingBottom: '5rem' }}>
       {/* Hero Greeting Card */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass"
+        className="glass mobile-stack mobile-p-1"
         style={{ 
           padding: '3rem', 
-          borderRadius: '40px', 
+          borderRadius: 'var(--radius-lg)', 
           marginBottom: '3rem',
           background: 'linear-gradient(135deg, rgba(255,107,53,0.05) 0%, rgba(255,255,255,0.8) 100%)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.05)'
+          boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
+          gap: '2rem'
         }}
       >
         <div>
@@ -124,6 +125,7 @@ const DinerDashboard: React.FC<{ profile: any }> = ({ profile }) => {
           border: '4px solid white',
           boxShadow: 'var(--shadow-lg)',
           overflow: 'hidden',
+          flexShrink: 0,
           background: profile?.profile_image_url ? `url(${profile.profile_image_url.startsWith('http') ? profile.profile_image_url : getPublicUrl(BUCKETS.PROFILES, profile.profile_image_url)}) center/cover` : 'var(--bg-soft)'
         }}>
           {!profile?.profile_image_url && <User size={48} color="var(--primary)" style={{ margin: '26px' }} />}
@@ -131,7 +133,7 @@ const DinerDashboard: React.FC<{ profile: any }> = ({ profile }) => {
       </motion.div>
 
       {/* KPI Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+      <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
         {[
           { label: 'Active Chefs', value: activeSubs.length, icon: Users, color: 'var(--primary)' },
           { label: 'Meals Per Week', value: totalMeals, icon: Package, color: 'var(--secondary)' },
@@ -195,7 +197,7 @@ const DinerDashboard: React.FC<{ profile: any }> = ({ profile }) => {
         ))}
       </AnimatePresence>
 
-      <div style={{ display: 'grid', gridTemplateColumns: activeSubs.length > 0 ? '1fr 1fr' : '1fr', gap: '2.5rem', marginBottom: '4rem' }}>
+      <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: activeSubs.length > 0 ? '1fr 1fr' : '1fr', gap: '2.5rem', marginBottom: '4rem' }}>
         {/* Empty State / Get Started handled if activeSubs.length === 0 below discovery */}
         
         {/* Your Chefs Section */}
@@ -317,7 +319,7 @@ const DinerDashboard: React.FC<{ profile: any }> = ({ profile }) => {
           </Link>
         </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+        <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
           {discoveryChefs.map(chef => {
             const chefImage = chef.profiles?.profile_image_url || getPublicUrl(BUCKETS.PROFILES, chef.profile_image_name)
             return (
@@ -350,6 +352,107 @@ const DinerDashboard: React.FC<{ profile: any }> = ({ profile }) => {
   )
 }
 
+// --- Profile Settings Component (Chef) ---
+const ProfileSettings: React.FC<{ profile: any }> = ({ profile }) => {
+  const [chefData, setChefData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    fetchChefData()
+  }, [])
+
+  const fetchChefData = async () => {
+    const { data } = await supabase
+      .from('chefs')
+      .select('*')
+      .eq('id', profile.id)
+      .single()
+    setChefData(data)
+    setLoading(false)
+  }
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    const { error } = await supabase
+      .from('chefs')
+      .update({
+        name: chefData.name,
+        specialty: chefData.specialty,
+        bio: chefData.bio,
+        location: chefData.location
+      })
+      .eq('id', profile.id)
+    
+    if (error) {
+      setMessage('Error updating profile: ' + error.message)
+    } else {
+      setMessage('Profile updated successfully!')
+      setTimeout(() => setMessage(''), 3000)
+    }
+    setSaving(false)
+  }
+
+  if (loading) return <div>Loading settings...</div>
+
+  return (
+    <motion.section 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="glass mobile-p-1" 
+      style={{ padding: '2.5rem', borderRadius: 'var(--radius-lg)', maxWidth: '800px' }}
+    >
+      <h2 style={{ marginBottom: '2rem', fontSize: '2rem' }}>Professional Profile</h2>
+      <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Professional Name</label>
+          <input 
+            className="form-input"
+            value={chefData?.name || ''} 
+            onChange={e => setChefData({...chefData, name: e.target.value})}
+          />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }} className="mobile-stack">
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Cuisine Specialty</label>
+            <input 
+              className="form-input"
+              value={chefData?.specialty || ''} 
+              onChange={e => setChefData({...chefData, specialty: e.target.value})}
+              placeholder="e.g. Italian & Mediterranean"
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Location</label>
+            <input 
+              className="form-input"
+              value={chefData?.location || ''} 
+              onChange={e => setChefData({...chefData, location: e.target.value})}
+            />
+          </div>
+        </div>
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Professional Bio</label>
+          <textarea 
+            className="form-input"
+            style={{ minHeight: '120px', resize: 'vertical' }}
+            value={chefData?.bio || ''} 
+            onChange={e => setChefData({...chefData, bio: e.target.value})}
+          />
+        </div>
+        
+        {message && <p style={{ color: message.includes('Error') ? 'var(--error)' : 'var(--success)', fontWeight: 600, fontSize: '0.9rem' }}>{message}</p>}
+        
+        <button type="submit" disabled={saving} className="btn-primary" style={{ width: 'fit-content', marginTop: '1rem' }}>
+          {saving ? 'Saving...' : 'Save Profile Changes'}
+        </button>
+      </form>
+    </motion.section>
+  )
+}
+
 // --- Chef Dashboard Component ---
 const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
   const [searchParams] = useSearchParams()
@@ -370,6 +473,27 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
   const fetchChefMetrics = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+
+    // 0. CHECK IF CHEF INITIALIZED IN 'chefs' TABLE
+    const { data: chefCheck } = await supabase
+      .from('chefs')
+      .select('id')
+      .eq('id', user.id)
+      .single()
+    
+    if (!chefCheck) {
+      // Auto-initialize chef record
+      await supabase
+        .from('chefs')
+        .insert({
+          id: user.id,
+          name: `${profile.first_name} ${profile.last_name}`,
+          specialty: 'Private Chef',
+          bio: 'Welcome! I am passionate about creating memorable dining experiences.',
+          rating: 5.0,
+          location: 'New York, NY'
+        })
+    }
 
     // Active Subscribers & Revenue
     const { data: subs } = await supabase
@@ -415,10 +539,12 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
         return <OrderManagement chefId={profile?.id} />
       case 'subscribers':
         return <SubscriberManagement chefId={profile?.id} />
+      case 'settings':
+        return <ProfileSettings profile={profile} />
       default:
         return (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
               {[
                 { label: 'Active Subscribers', value: metrics.subscribers, icon: Users, color: '#3b82f6' },
                 { label: 'Weekly Revenue', value: `$${metrics.revenue}`, icon: TrendingUp, color: '#10b981' },
@@ -430,8 +556,8 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="glass" 
-                  style={{ padding: '1.5rem', borderRadius: '24px' }}
+                  className="glass mobile-p-1" 
+                  style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}
                 >
                   <kpi.icon size={24} color={kpi.color} style={{ marginBottom: '1rem' }} />
                   <p style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '0.25rem' }}>{kpi.value}</p>
@@ -440,7 +566,7 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
               ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+            <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
               <section className="glass" style={{ padding: '2rem', borderRadius: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -531,8 +657,8 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
   }
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <header style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="container" style={{ paddingTop: '2rem', paddingBottom: '5rem' }}>
+      <header className="mobile-stack" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
         <div>
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Chef {profile?.first_name || 'Panel'}</h1>
           <p style={{ color: 'var(--text-dim)' }}>
@@ -544,7 +670,7 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           {activeTab === 'menu' && (
-            <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem' }}>
               <Plus size={20} /> New Meal
             </button>
           )}
@@ -556,6 +682,7 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
             alignItems: 'center', 
             justifyContent: 'center',
             overflow: 'hidden',
+            flexShrink: 0,
             background: profile?.profile_image_url ? `url(${profile.profile_image_url.startsWith('http') ? profile.profile_image_url : getPublicUrl(BUCKETS.PROFILES, profile.profile_image_url)}) center/cover` : 'var(--bg-soft)'
           }}>
             {!profile?.profile_image_url && <User size={32} color="var(--primary)" />}

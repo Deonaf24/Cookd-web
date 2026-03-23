@@ -43,40 +43,40 @@ const Navbar: React.FC = () => {
       borderRight: 'none',
       borderRadius: '0 0 24px 24px'
     }}>
-      <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <img src="/logo.png" alt="Cookd" style={{ height: '40px', width: 'auto' }} />
-        <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--primary)', letterSpacing: '-0.02em' }}>Cookd</span>
+      <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <img src="/logo.png" alt="Cookd" style={{ height: '32px', width: 'auto' }} />
+        <span className="mobile-hide" style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--primary)', letterSpacing: '-0.02em' }}>Cookd</span>
       </Link>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(1rem, 3vw, 2rem)' }}>
         {role === 'chef' ? (
           <>
             <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, color: 'var(--text-dim)' }}>
               <LayoutDashboard size={20} />
-              Dashboard
+              <span className="mobile-hide">Dashboard</span>
             </Link>
             <Link to="/dashboard?tab=menu" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, color: 'var(--text-dim)' }}>
               <Database size={20} />
-              Menu
+              <span className="mobile-hide">Menu</span>
             </Link>
             <Link to="/dashboard?tab=orders" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, color: 'var(--text-dim)' }}>
               <ShoppingBag size={20} />
-              Orders
+              <span className="mobile-hide">Orders</span>
             </Link>
             <Link to="/dashboard?tab=subscribers" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, color: 'var(--text-dim)' }}>
               <Users size={20} />
-              Subscribers
+              <span className="mobile-hide">Subscribers</span>
             </Link>
           </>
         ) : (
           <>
             <Link to="/browse" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, color: 'var(--text-dim)' }}>
               <Search size={20} />
-              Browse
+              <span className="mobile-hide">Browse</span>
             </Link>
             <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, color: 'var(--text-dim)' }}>
               <LayoutDashboard size={20} />
-              Dashboard
+              <span className="mobile-hide">Dashboard</span>
             </Link>
           </>
         )}
@@ -85,7 +85,7 @@ const Navbar: React.FC = () => {
 
         <button onClick={handleSignOut} style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <LogOut size={24} />
-          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Sign Out</span>
+          <span className="mobile-hide" style={{ fontSize: '0.9rem', fontWeight: 600 }}>Sign Out</span>
         </button>
       </div>
     </nav>

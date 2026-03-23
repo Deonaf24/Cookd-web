@@ -179,19 +179,20 @@ const ChefProfile: React.FC = () => {
 
   return (
     <Layout>
-      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '3rem' }}>
+      <div className="container" style={{ paddingBottom: '5rem', paddingTop: '2rem' }}>
+        <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '3rem' }}>
           
           {/* Main Content */}
           <div>
             <header style={{ marginBottom: '2.5rem' }}>
-              <div style={{ 
-                height: '350px', 
+              <div className="mobile-stack" style={{ 
+                height: 'auto',
+                minHeight: '250px', 
                 background: (() => {
                   const imageUrl = chef.profiles?.profile_image_url || getPublicUrl(BUCKETS.PROFILES, chef.profile_image_name);
                   return imageUrl ? `url(${imageUrl}) center/cover` : 'linear-gradient(135deg, var(--primary), var(--accent))';
                 })(),
-                borderRadius: '32px',
+                borderRadius: 'var(--radius-lg)',
                 marginBottom: '2rem',
                 position: 'relative',
                 display: 'flex',
@@ -239,7 +240,7 @@ const ChefProfile: React.FC = () => {
 
             <section>
               <h2 style={{ fontSize: '1.8rem', marginBottom: '2rem' }}>Weekly Menu</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div className="mobile-grid-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                 {meals.map((meal) => (
                   <Link to={`/meal/${meal.id}`} key={meal.id}>
                     <motion.div 
