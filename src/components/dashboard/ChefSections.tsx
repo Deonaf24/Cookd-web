@@ -53,12 +53,12 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Plans Section */}
-      <section className="glass" style={{ padding: '2rem', borderRadius: '24px' }}>
+      <section className="glass mobile-p-1" style={{ padding: '2rem', borderRadius: '24px' }}>
         <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <TrendingUp size={24} color="var(--primary)" />
           Subscription Plans
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+        <div className="mobile-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
           {plans.map(plan => (
             <div key={plan.id} style={{ padding: '1.5rem', background: 'var(--bg-soft)', borderRadius: '16px', border: '1px solid var(--primary-light)' }}>
               <p style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.5rem' }}>{plan.meal_count} Meals / Week</p>
@@ -73,7 +73,7 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
       </section>
 
       {/* Meals Section */}
-      <section className="glass" style={{ padding: '2rem', borderRadius: '24px' }}>
+      <section className="glass mobile-p-1" style={{ padding: '2rem', borderRadius: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <UtensilsCrossed size={24} color="var(--primary)" />
@@ -84,7 +84,7 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <div className="mobile-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
           {meals.map(meal => (
             <div key={meal.id} className="glass" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.05)' }}>
               <div style={{ 
@@ -150,7 +150,7 @@ export const OrderManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}>Loading orders...</div>
 
   return (
-    <section className="glass" style={{ padding: '2rem', borderRadius: '24px' }}>
+    <section className="glass mobile-p-1" style={{ padding: '2rem', borderRadius: '24px' }}>
       <h3 style={{ marginBottom: '2rem' }}>Order Management</h3>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -232,9 +232,9 @@ export const SubscriberManagement: React.FC<{ chefId: string }> = ({ chefId }) =
   if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}>Loading subscribers...</div>
 
   return (
-    <section className="glass" style={{ padding: '2rem', borderRadius: '24px' }}>
+    <section className="glass mobile-p-1" style={{ padding: '2rem', borderRadius: '24px' }}>
       <h3 style={{ marginBottom: '2rem' }}>Active Subscribers</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+      <div className="mobile-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
         {subscribers.map(sub => (
           <div key={sub.id} className="glass" style={{ padding: '1.5rem', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{ 

@@ -133,7 +133,7 @@ const DinerDashboard: React.FC<{ profile: any }> = ({ profile }) => {
       </motion.div>
 
       {/* KPI Stats Row */}
-      <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+      <div className="mobile-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
         {[
           { label: 'Active Chefs', value: activeSubs.length, icon: Users, color: 'var(--primary)' },
           { label: 'Meals Per Week', value: totalMeals, icon: Package, color: 'var(--secondary)' },
@@ -544,7 +544,7 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
       default:
         return (
           <>
-            <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div className="mobile-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
               {[
                 { label: 'Active Subscribers', value: metrics.subscribers, icon: Users, color: '#3b82f6' },
                 { label: 'Weekly Revenue', value: `$${metrics.revenue}`, icon: TrendingUp, color: '#10b981' },
@@ -567,7 +567,7 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
             </div>
 
             <div className="mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
-              <section className="glass" style={{ padding: '2rem', borderRadius: '24px' }}>
+              <section className="glass mobile-p-1" style={{ padding: '2rem', borderRadius: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <Package size={24} color="var(--primary)" />
