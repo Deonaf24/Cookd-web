@@ -283,7 +283,7 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
                   </div>
                 ) : editingMealId && meals.find(m => m.id === editingMealId)?.image_name ? (
                   <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '200px' }}>
-                    <img src={getPublicUrl(BUCKETS.MEALS, meals.find(m => m.id === editingMealId)!.image_name!)} alt="Current" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }} />
+                    <img src={getPublicUrl(BUCKETS.MEALS, meals.find(m => m.id === editingMealId)?.image_name)} alt="Current" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }} />
                     <label style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'var(--primary)', color: 'white', padding: '0.5rem 1rem', borderRadius: '10px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
                       Change Photo
                       <input type="file" accept="image/*" hidden onChange={e => setMealImage(e.target.files?.[0] || null)} />
