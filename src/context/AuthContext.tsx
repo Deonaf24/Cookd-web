@@ -35,7 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user || null)
         
         if (session?.user) {
-          await fetchProfile(session.user.id)
+          // Don't wait for profile to unblock the main app loading state
+          fetchProfile(session.user.id)
         }
       } catch (error) {
         console.error('[AuthContext] Initialization error:', error)
@@ -55,16 +56,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user || null)
         
         if (session?.user) {
-          await fetchProfile(session.user.id)
+          // Don't wait for profile to unblock the main app loading state
+          fetchProfile(session.user.id)
         } else {
           console.log('[AuthContext] No user in state change, clearing profile')
           setProfile(null)
-          setLoading(false)
         }
       } catch (error) {
         console.error('[AuthContext] Auth state change error:', error)
       } finally {
-        console.log('[AuthContext] State change processing complete')
+        console.log('[AuthContext] State change processing complete, setting loading to false')
         setLoading(false)
       }
     })
