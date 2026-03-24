@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import Layout from '../components/layout/Layout'
-import { Star, MapPin, ChefHat, Check, Info, UtensilsCrossed } from 'lucide-react'
+import { Star, MapPin, ChefHat, Check, Info, UtensilsCrossed, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getPublicUrl, BUCKETS } from '../services/images'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
 import CheckoutModal from '../components/CheckoutModal'
+import { useAuth } from '../context/AuthContext'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
@@ -43,6 +44,7 @@ interface Chef {
 
 const ChefProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>()
+  const { user, profile: authProfile, loading: authLoading } = useAuth()
   const [chef, setChef] = useState<Chef | null>(null)
   const [plans, setPlans] = useState<Plan[]>([])
   const [meals, setMeals] = useState<Meal[]>([])
@@ -50,29 +52,18 @@ const ChefProfile: React.FC = () => {
   const [currentSubscription, setCurrentSubscription] = useState<any>(null)
   const [isManaging, setIsManaging] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
-  const [userProfile, setUserProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isEligibleToRate, setIsEligibleToRate] = useState(false)
+  const [userRating, setUserRating] = useState<number | null>(null)
 
   useEffect(() => {
-    if (id) {
+    if (id && !authLoading) {
       fetchChefData()
     }
-  }, [id])
+  }, [id, authLoading])
 
   const fetchChefData = async () => {
     setLoading(true)
-    
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      setUserProfile({ ...profile, email: user.email })
-    }
     
     // Fetch Chef
     const { data: chefData } = await supabase
@@ -94,8 +85,9 @@ const ChefProfile: React.FC = () => {
       .eq('chef_id', id)
       .eq('is_available', true)
     
-    // Fetch Subscription if logged in
+    // Fetch Subscription and Eligibility if logged in
     if (user && id) {
+      // 1. Current Active Subscription
       const { data: subData } = await supabase
         .from('subscriptions')
         .select('*, subscription_plans(*)')
@@ -106,10 +98,31 @@ const ChefProfile: React.FC = () => {
       
       if (subData) {
         setCurrentSubscription(subData)
-        // Auto-select the current plan if subscribed
         const activePlan = plansData?.find(p => p.id === subData.plan_id)
         if (activePlan) setSelectedPlan(activePlan)
+      } else {
+        setCurrentSubscription(null)
       }
+
+      // 2. Eligibility (has ever been subscribed)
+      const { data: anySub } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('diner_id', user.id)
+        .eq('chef_id', id)
+        .limit(1)
+      
+      setIsEligibleToRate(!!anySub?.length)
+
+      // 3. Current User Rating
+      const { data: ratingData } = await supabase
+        .from('chef_ratings')
+        .select('rating')
+        .eq('diner_id', user.id)
+        .eq('chef_id', id)
+        .single()
+      
+      if (ratingData) setUserRating(ratingData.rating)
     }
     
     if (chefData) setChef(chefData)
@@ -119,28 +132,80 @@ const ChefProfile: React.FC = () => {
     setLoading(false)
   }
 
+  const handleRate = async (rating: number) => {
+    if (!user || !id) return
+    
+    const prevRating = userRating
+    setUserRating(rating) // Optimistic update
+
+    try {
+      // 1. Upsert rating
+      const { error: upsertError } = await supabase
+        .from('chef_ratings')
+        .upsert({
+          diner_id: user.id,
+          chef_id: id,
+          rating: rating
+        }, { onConflict: 'diner_id,chef_id' })
+      
+      if (upsertError) throw upsertError
+
+      // 2. Fetch all ratings to recalculate average
+      const { data: allRatings } = await supabase
+        .from('chef_ratings')
+        .select('rating')
+        .eq('chef_id', id)
+      
+      if (allRatings?.length) {
+        const avg = allRatings.reduce((sum, r) => sum + r.rating, 0) / allRatings.length
+        const roundedAvg = Math.round(avg * 10) / 10
+        
+        // 3. Update chef's main rating
+        await supabase
+          .from('chefs')
+          .update({ rating: roundedAvg })
+          .eq('id', id)
+        
+        // Refresh local chef data
+        setChef(prev => prev ? { ...prev, rating: roundedAvg } : null)
+      }
+    } catch (err: any) {
+      console.error('Rating error:', err)
+      setUserRating(prevRating) // Revert on failure
+      alert("Failed to save rating. Please try again.")
+    }
+  }
+
   const handleCancelSubscription = async () => {
-    if (!currentSubscription) return
+    if (!currentSubscription?.id) return
     const confirm = window.confirm("Are you sure you want to cancel your subscription to Chef " + chef?.name + "? You'll lose access to weekly meal selections.")
     if (!confirm) return
 
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({ status: 'cancelled' })
-      .eq('id', currentSubscription.id)
-    
-    if (error) {
-      alert("Error cancelling subscription: " + error.message)
-    } else {
+    setLoading(true)
+    try {
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ status: 'cancelled' })
+        .eq('id', currentSubscription.id)
+      
+      if (error) throw error
+      
+      // Clear local state and refresh from DB
       setCurrentSubscription(null)
       setIsManaging(false)
+      await fetchChefData()
       alert("Subscription cancelled successfully.")
+    } catch (error: any) {
+      console.error('Cancellation error:', error)
+      alert("Error cancelling subscription: " + error.message)
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleSubscribe = () => {
     if (!selectedPlan) return
-    if (!userProfile) {
+    if (!authProfile) {
       alert("Please log in to subscribe.")
       return
     }
@@ -149,16 +214,13 @@ const ChefProfile: React.FC = () => {
 
   const handlePaymentSuccess = async (subscriptionId: string) => {
     setIsCheckoutOpen(false)
-    // The subscription row is already inserted by the Edge Function or we should do it here if it's not.
-    // Looking at create-subscription/index.ts, it DOES NOT insert into the 'subscriptions' table.
-    // It only creates the Stripe subscription.
-    // So we MUST insert it here after successful payment confirmation.
-    
+    if (!authProfile) return
+
     try {
       const { error } = await supabase
         .from('subscriptions')
         .insert({
-          diner_id: userProfile.id,
+          diner_id: authProfile.id,
           chef_id: id,
           plan_id: selectedPlan?.id,
           status: 'active',
@@ -172,6 +234,80 @@ const ChefProfile: React.FC = () => {
     } catch (err: any) {
       alert("Payment was successful but we couldn't activate your subscription in our database: " + err.message)
     }
+  }
+
+  const StarRating = () => {
+    const [hover, setHover] = useState<number | null>(null)
+    const rating = hover !== null ? hover : (userRating || 0)
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Rate your experience
+        </p>
+        
+        {/* SVG Gradient Definition */}
+        <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+          <defs>
+            <linearGradient id="half-star-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="50%" stopColor="var(--accent)" />
+              <stop offset="50%" stopColor="transparent" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
+          {[1, 2, 3, 4, 5].map((starIdx) => {
+            const isFull = rating >= starIdx
+            const isHalf = rating === starIdx - 0.5
+            
+            return (
+              <div 
+                key={starIdx}
+                style={{ 
+                  position: 'relative', 
+                  width: '34px', 
+                  height: '48px', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {/* Visual Star */}
+                <Star 
+                  size={28} 
+                  fill={isFull ? 'var(--accent)' : (isHalf ? 'url(#half-star-gradient)' : 'none')} 
+                  color={isFull || isHalf ? 'var(--accent)' : 'var(--text-dim)'}
+                  strokeWidth={2}
+                  style={{ opacity: isFull || isHalf ? 1 : 0.4 }}
+                />
+                
+                {/* Interaction Areas */}
+                <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+                  <div 
+                    style={{ flex: 1 }} 
+                    onMouseEnter={() => setHover(starIdx - 0.5)}
+                    onMouseLeave={() => setHover(null)}
+                    onClick={() => handleRate(starIdx - 0.5)}
+                  />
+                  <div 
+                    style={{ flex: 1 }} 
+                    onMouseEnter={() => setHover(starIdx)}
+                    onMouseLeave={() => setHover(null)}
+                    onClick={() => handleRate(starIdx)}
+                  />
+                </div>
+              </div>
+            )
+          })}
+          
+          <span style={{ marginLeft: '0.5rem', fontWeight: 800, color: 'var(--accent)', fontSize: '1.2rem' }}>
+            {userRating ? userRating.toFixed(1) : '–'}
+          </span>
+        </div>
+      </div>
+    )
   }
 
   if (loading) return <Layout><div style={{ textAlign: 'center', padding: '5rem' }}>Loading chef profile...</div></Layout>
@@ -218,6 +354,12 @@ const ChefProfile: React.FC = () => {
               
               <h1 style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>{chef.name}</h1>
               <p style={{ color: 'var(--primary)', fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>{chef.specialty}</p>
+              
+              {isEligibleToRate && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <StarRating />
+                </div>
+              )}
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', color: 'var(--text-dim)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -395,7 +537,7 @@ const ChefProfile: React.FC = () => {
         </div>
       </div>
       
-      {selectedPlan && userProfile && (
+      {selectedPlan && authProfile && (
         <Elements stripe={stripePromise}>
           <CheckoutModal 
             isOpen={isCheckoutOpen}
@@ -403,7 +545,7 @@ const ChefProfile: React.FC = () => {
             onSuccess={handlePaymentSuccess}
             plan={selectedPlan}
             chef={chef}
-            diner={userProfile}
+            diner={authProfile}
           />
         </Elements>
       )}

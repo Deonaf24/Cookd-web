@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../../services/supabase'
-import { Plus, Edit2, Trash2, Check, X, UtensilsCrossed, TrendingUp, User } from 'lucide-react'
+import { Plus, Edit2, Trash2, Check, X, UtensilsCrossed, TrendingUp, User, Camera } from 'lucide-react'
 import { getPublicUrl, BUCKETS } from '../../services/images'
 
 // --- Menu Management ---
@@ -8,8 +8,28 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
   const [meals, setMeals] = useState<any[]>([])
   const [plans, setPlans] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingMeal, setEditingMeal] = useState<any>(null)
   const [isAddingMeal, setIsAddingMeal] = useState(false)
+  const [isAddingPlan, setIsAddingPlan] = useState(false)
+  const [editingMealId, setEditingMealId] = useState<string | null>(null)
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
+  const [newMeal, setNewMeal] = useState({ 
+    name: '', 
+    description: '', 
+    calories: '', 
+    protein_grams: '', 
+    carbs_grams: '', 
+    fat_grams: '',
+    allergens: '',
+    ingredients: ''
+  })
+  const [newPlan, setNewPlan] = useState({ 
+    meal_count: '', 
+    weekly_price: '', 
+    selection_mode: 'free_choice',
+    batch_size: 2
+  })
+  const [mealImage, setMealImage] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   useEffect(() => {
     fetchMenuData()
@@ -33,6 +53,100 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
     setLoading(false)
   }
 
+  const handleSaveMeal = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsUploading(true)
+    
+    let imagePath = null
+    if (mealImage) {
+      const fileExt = mealImage.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const { data, error: uploadError } = await supabase.storage
+        .from(BUCKETS.MEALS)
+        .upload(fileName, mealImage)
+      
+      if (!uploadError) {
+        imagePath = fileName
+      }
+    }
+
+    const mealData = { 
+      name: newMeal.name,
+      description: newMeal.description,
+      calories: parseInt(newMeal.calories) || 0,
+      protein_grams: parseInt(newMeal.protein_grams) || 0,
+      carbs_grams: parseInt(newMeal.carbs_grams) || 0,
+      fat_grams: parseInt(newMeal.fat_grams) || 0,
+      allergens: newMeal.allergens.split(',').map(s => s.trim()).filter(s => s),
+      ingredients: newMeal.ingredients.split(',').map(s => s.trim()).filter(s => s),
+      chef_id: chefId,
+      image_name: imagePath || (editingMealId ? meals.find(m => m.id === editingMealId)?.image_name : null),
+      is_available: true 
+    }
+
+    const { error } = editingMealId 
+      ? await supabase.from('meals').update(mealData).eq('id', editingMealId)
+      : await supabase.from('meals').insert([mealData])
+    
+    if (!error) {
+      setIsAddingMeal(false)
+      setEditingMealId(null)
+      setMealImage(null)
+      setNewMeal({ name: '', description: '', calories: '', protein_grams: '', carbs_grams: '', fat_grams: '', allergens: '', ingredients: '' })
+      fetchMenuData()
+    }
+    setIsUploading(false)
+  }
+
+  const handleSavePlan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const planData = { 
+      meal_count: parseInt(newPlan.meal_count) || 0,
+      weekly_price: parseFloat(newPlan.weekly_price) || 0,
+      selection_mode: newPlan.selection_mode,
+      batch_size: newPlan.selection_mode === 'batch_choice' ? newPlan.batch_size : 1,
+      chef_id: chefId 
+    }
+
+    const { error } = editingPlanId
+      ? await supabase.from('subscription_plans').update(planData).eq('id', editingPlanId)
+      : await supabase.from('subscription_plans').insert([planData])
+
+    if (!error) {
+      setIsAddingPlan(false)
+      setEditingPlanId(null)
+      setNewPlan({ meal_count: '', weekly_price: '', selection_mode: 'free_choice', batch_size: 2 })
+      fetchMenuData()
+    }
+  }
+
+  const startEditMeal = (meal: any) => {
+    setNewMeal({
+      name: meal.name,
+      description: meal.description || '',
+      calories: meal.calories.toString(),
+      protein_grams: meal.protein_grams.toString(),
+      carbs_grams: (meal.carbs_grams || 0).toString(),
+      fat_grams: (meal.fat_grams || 0).toString(),
+      allergens: (meal.allergens || []).join(', '),
+      ingredients: (meal.ingredients || []).join(', ')
+    })
+    setEditingMealId(meal.id)
+    setIsAddingMeal(true)
+    window.scrollTo({ top: 400, behavior: 'smooth' })
+  }
+
+  const startEditPlan = (plan: any) => {
+    setNewPlan({
+      meal_count: plan.meal_count.toString(),
+      weekly_price: plan.weekly_price.toString(),
+      selection_mode: plan.selection_mode,
+      batch_size: plan.batch_size || 2
+    })
+    setEditingPlanId(plan.id)
+    setIsAddingPlan(true)
+  }
+
   const toggleAvailability = async (mealId: string, currentStatus: boolean) => {
     await supabase
       .from('meals')
@@ -44,6 +158,13 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
   const deleteMeal = async (mealId: string) => {
     if (confirm('Are you sure you want to delete this meal?')) {
       await supabase.from('meals').delete().eq('id', mealId)
+      fetchMenuData()
+    }
+  }
+
+  const deletePlan = async (planId: string) => {
+    if (confirm('Are you sure you want to delete this subscription plan? Tiers already purchased by active subscribers will not be affected.')) {
+      await supabase.from('subscription_plans').delete().eq('id', planId)
       fetchMenuData()
     }
   }
@@ -64,11 +185,70 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
               <p style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.5rem' }}>{plan.meal_count} Meals / Week</p>
               <p style={{ color: 'var(--primary)', fontSize: '1.5rem', fontWeight: 800 }}>${plan.weekly_price}</p>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>Mode: {plan.selection_mode}</p>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                <button onClick={() => startEditPlan(plan)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}><Edit2 size={18} /></button>
+                <button onClick={() => deletePlan(plan.id)} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer' }}><Trash2 size={18} /></button>
+              </div>
             </div>
           ))}
-          <button style={{ padding: '1.5rem', border: '2px dashed var(--primary-light)', borderRadius: '16px', background: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <Plus size={24} /> Add Plan
-          </button>
+          
+          {isAddingPlan ? (
+            <form onSubmit={handleSavePlan} style={{ gridColumn: '1 / -1' }} className="glass">
+              <div style={{ padding: '2rem', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '1.5rem', border: '1px solid var(--primary-light)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ fontWeight: 800 }}>{editingPlanId ? 'Edit Subscription Plan' : 'New Subscription Plan'}</h4>
+                  <button type="button" onClick={() => { setIsAddingPlan(false); setEditingPlanId(null); }} style={{ color: 'var(--text-dim)' }}><X size={20} /></button>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }} className="mobile-stack">
+                  <div className="form-group">
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Meals per Week</label>
+                    <input type="number" placeholder="e.g. 5" className="form-input" value={newPlan.meal_count} onChange={e => setNewPlan({...newPlan, meal_count: e.target.value})} required />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Weekly Price ($)</label>
+                    <input type="number" placeholder="e.g. 150" className="form-input" value={newPlan.weekly_price} onChange={e => setNewPlan({...newPlan, weekly_price: e.target.value})} required />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Selection Mode</label>
+                  <select 
+                    className="form-input" 
+                    value={newPlan.selection_mode} 
+                    onChange={e => setNewPlan({...newPlan, selection_mode: e.target.value})}
+                    style={{ width: '100%', paddingRight: '2rem' }}
+                  >
+                    <option value="single_choice">Single Choice (Diner picks one meal type)</option>
+                    <option value="free_choice">Free Choice (Diner picks any combination)</option>
+                    <option value="batch_choice">Batch Choice (Diner picks in increments)</option>
+                  </select>
+                </div>
+
+                {newPlan.selection_mode === 'batch_choice' && (
+                  <div className="form-group">
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Batch Size (2-10)</label>
+                    <input type="number" min="2" max="10" className="form-input" value={newPlan.batch_size} onChange={e => setNewPlan({...newPlan, batch_size: parseInt(e.target.value)})} required />
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                  <button type="submit" className="btn-primary" style={{ flex: 1 }}>{editingPlanId ? 'Update Plan' : 'Save Plan'}</button>
+                  {editingPlanId && (
+                    <button type="button" className="btn-secondary" style={{ color: 'var(--error)' }} onClick={() => deletePlan(editingPlanId)}>Delete Plan</button>
+                  )}
+                  <button type="button" onClick={() => { setIsAddingPlan(false); setEditingPlanId(null); }} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
+                </div>
+              </div>
+            </form>
+          ) : (
+            <button 
+              onClick={() => { setIsAddingPlan(true); setEditingPlanId(null); setNewPlan({ meal_count: '', weekly_price: '', selection_mode: 'free_choice', batch_size: 2 }); }}
+              style={{ padding: '1.5rem', border: '2px dashed var(--primary-light)', borderRadius: '16px', background: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              <Plus size={24} /> Add Plan
+            </button>
+          )}
         </div>
       </section>
 
@@ -79,10 +259,99 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
             <UtensilsCrossed size={24} color="var(--primary)" />
             Meal Catalog
           </h3>
-          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={() => { setIsAddingMeal(true); setEditingMealId(null); setNewMeal({ name: '', description: '', calories: '', protein_grams: '', carbs_grams: '', fat_grams: '', allergens: '', ingredients: '' }); }} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Plus size={20} /> Add New Meal
           </button>
         </div>
+
+        {isAddingMeal && (
+          <form onSubmit={handleSaveMeal} className="glass" style={{ padding: '2.5rem', borderRadius: '32px', marginBottom: '3rem', display: 'flex', flexDirection: 'column', gap: '2rem', border: '1px solid var(--primary-light)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h4 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{editingMealId ? 'Edit Meal Item' : 'Create New Meal Item'}</h4>
+              <button type="button" onClick={() => { setIsAddingMeal(false); setEditingMealId(null); }} style={{ color: 'var(--text-dim)' }}><X size={24} /></button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }} className="mobile-stack">
+              {/* Image Section */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '2rem', background: 'var(--bg-soft)', borderRadius: '24px', border: '2px dashed var(--primary-light)', height: '100%', justifyContent: 'center' }}>
+                {mealImage ? (
+                  <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '200px' }}>
+                    <img src={URL.createObjectURL(mealImage)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }} />
+                    <button type="button" onClick={() => setMealImage(null)} style={{ position: 'absolute', top: '-10px', right: '-10px', background: 'var(--error)', color: 'white', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : editingMealId && meals.find(m => m.id === editingMealId)?.image_name ? (
+                  <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '200px' }}>
+                    <img src={getPublicUrl(BUCKETS.MEALS, meals.find(m => m.id === editingMealId)!.image_name!)} alt="Current" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }} />
+                    <label style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'var(--primary)', color: 'white', padding: '0.5rem 1rem', borderRadius: '10px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+                      Change Photo
+                      <input type="file" accept="image/*" hidden onChange={e => setMealImage(e.target.files?.[0] || null)} />
+                    </label>
+                  </div>
+                ) : (
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                    <Camera size={48} color="var(--primary)" opacity={0.5} />
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontWeight: 700, color: 'var(--text-main)' }}>Upload Photo</p>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>High-res JPG/PNG</p>
+                    </div>
+                    <input type="file" accept="image/*" hidden onChange={e => setMealImage(e.target.files?.[0] || null)} />
+                  </label>
+                )}
+              </div>
+
+              {/* Basic Info */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Meal Name</label>
+                  <input placeholder="e.g. Lemon Herb Salmon" className="form-input" value={newMeal.name} onChange={e => setNewMeal({...newMeal, name: e.target.value})} required />
+                </div>
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Brief Description</label>
+                  <textarea placeholder="Describe the flavors and preparation..." className="form-input" style={{ minHeight: '100px' }} value={newMeal.description} onChange={e => setNewMeal({...newMeal, description: e.target.value})} required />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }} className="mobile-grid-2">
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem' }}>Calories</label>
+                <input type="number" placeholder="500" className="form-input" value={newMeal.calories} onChange={e => setNewMeal({...newMeal, calories: e.target.value})} required />
+              </div>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem' }}>Protein (g)</label>
+                <input type="number" placeholder="30" className="form-input" value={newMeal.protein_grams} onChange={e => setNewMeal({...newMeal, protein_grams: e.target.value})} required />
+              </div>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem' }}>Carbs (g)</label>
+                <input type="number" placeholder="40" className="form-input" value={newMeal.carbs_grams} onChange={e => setNewMeal({...newMeal, carbs_grams: e.target.value})} required />
+              </div>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem' }}>Fat (g)</label>
+                <input type="number" placeholder="15" className="form-input" value={newMeal.fat_grams} onChange={e => setNewMeal({...newMeal, fat_grams: e.target.value})} required />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }} className="mobile-stack">
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Key Ingredients</label>
+                <input placeholder="Garlic, Onion, Salmon..." className="form-input" value={newMeal.ingredients} onChange={e => setNewMeal({...newMeal, ingredients: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Allergens</label>
+                <input placeholder="Gluten, Dairy, Nuts..." className="form-input" value={newMeal.allergens} onChange={e => setNewMeal({...newMeal, allergens: e.target.value})} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <button type="submit" className="btn-primary" style={{ flex: 2, padding: '1rem' }} disabled={isUploading}>
+                {isUploading ? <div className="loading-spinner" style={{ width: '20px', height: '20px' }} /> : (editingMealId ? 'Update Meal' : 'Add to Chef Catalog')}
+              </button>
+              <button type="button" onClick={() => { setIsAddingMeal(false); setEditingMealId(null); setMealImage(null); }} className="btn-secondary" style={{ flex: 1 }} disabled={isUploading}>Cancel</button>
+            </div>
+          </form>
+        )}
 
         <div className="mobile-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
           {meals.map(meal => (
@@ -108,7 +377,7 @@ export const MenuManagement: React.FC<{ chefId: string }> = ({ chefId }) => {
                 <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)' }}>{meal.calories} kcal</span>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}><Edit2 size={18} /></button>
+                    <button onClick={() => startEditMeal(meal)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}><Edit2 size={18} /></button>
                     <button onClick={() => deleteMeal(meal.id)} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer' }}><Trash2 size={18} /></button>
                   </div>
                 </div>

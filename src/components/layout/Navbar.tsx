@@ -80,9 +80,14 @@ const Navbar: React.FC = () => {
             </Link>
           </>
         )}
+
+        <Link to="/account" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, color: 'var(--text-dim)' }}>
+          <User size={20} />
+          <span className="mobile-hide">Account</span>
+        </Link>
         
         <div style={{ height: '24px', width: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
-
+        
         <button onClick={handleSignOut} style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <LogOut size={24} />
           <span className="mobile-hide" style={{ fontSize: '0.9rem', fontWeight: 600 }}>Sign Out</span>

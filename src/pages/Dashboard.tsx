@@ -2,7 +2,29 @@ import React, { useEffect, useState } from 'react'
 import { supabase } from '../services/supabase'
 import Layout from '../components/layout/Layout'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Clock, ChevronRight, User, TrendingUp, Users, Package, Settings, Plus, Bell, Info, Search } from 'lucide-react'
+import { 
+  Users, 
+  ChefHat, 
+  UtensilsCrossed, 
+  Calendar, 
+  TrendingUp, 
+  Plus, 
+  Settings, 
+  LogOut, 
+  Search, 
+  ShoppingBag,
+  ChevronRight,
+  User,
+  Star,
+  MapPin,
+  Flame,
+  Clock,
+  CheckCircle,
+  Truck,
+  Package,
+  Bell,
+  Info
+} from 'lucide-react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { MenuManagement, OrderManagement, SubscriberManagement } from '../components/dashboard/ChefSections'
 import { getPublicUrl, BUCKETS } from '../services/images'
@@ -205,7 +227,6 @@ const DinerDashboard: React.FC<{ profile: any }> = ({ profile }) => {
           <section>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Your Chefs</h3>
-              <Link to="/browse" style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem' }}>Manage Subscriptions</Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {activeSubs.map(sub => {
@@ -337,7 +358,15 @@ const DinerDashboard: React.FC<{ profile: any }> = ({ profile }) => {
                 onMouseOver={e => e.currentTarget.style.transform = 'scale(1.02)'}
                 onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
               >
-                <div style={{ height: '140px', background: chefImage ? `url(${chefImage}) center/cover` : 'var(--bg-soft)' }} />
+                <div style={{ 
+                  height: '140px', 
+                  background: chefImage ? `url(${chefImage}) center/cover` : 'var(--bg-soft)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {!chefImage && <ChefHat size={48} color="var(--primary)" opacity={0.3} />}
+                </div>
                 <div style={{ padding: '1.25rem' }}>
                   <p style={{ fontWeight: 800, marginBottom: '0.25rem' }}>{chef.name}</p>
                   <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 600 }}>Starting from ${chef.subscription_plans?.[0]?.weekly_price || 0}/wk</p>
@@ -669,11 +698,6 @@ const ChefDashboard: React.FC<{ profile: any }> = ({ profile }) => {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          {activeTab === 'menu' && (
-            <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem' }}>
-              <Plus size={20} /> New Meal
-            </button>
-          )}
           <div className="glass" style={{ 
             width: '60px', 
             height: '60px', 

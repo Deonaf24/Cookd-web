@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import Layout from '../components/layout/Layout'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, ChevronLeft, Minus, Plus, UtensilsCrossed, Info } from 'lucide-react'
+import { CheckCircle, ChevronLeft, Minus, Plus, UtensilsCrossed, Info, X, Flame, ShieldCheck, ChevronRight } from 'lucide-react'
 import { getPublicUrl, BUCKETS } from '../services/images'
 
 const WeeklySelection: React.FC = () => {
@@ -19,6 +19,7 @@ const WeeklySelection: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
+  const [selectedMealForNutrition, setSelectedMealForNutrition] = useState<any>(null)
 
   useEffect(() => {
     fetchSelectionData()
@@ -189,8 +190,10 @@ const WeeklySelection: React.FC = () => {
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '1.5rem',
-                border: selectedQuantities[meal.id] > 0 ? '1.5px solid var(--primary)' : '1px solid transparent'
+                border: selectedQuantities[meal.id] > 0 ? '1.5px solid var(--primary)' : '1px solid transparent',
+                cursor: 'pointer'
               }}
+              onClick={() => setSelectedMealForNutrition(meal)}
             >
               <div style={{ 
                 width: '100px', 
@@ -207,37 +210,184 @@ const WeeklySelection: React.FC = () => {
               <div style={{ flex: 1 }}>
                 <h3 style={{ fontSize: '1.2rem', marginBottom: '0.25rem' }}>{meal.name}</h3>
                 <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>{meal.calories} kcal • {meal.protein_grams}g protein</p>
-                <button 
-                  style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', padding: 0 }}
-                  onClick={() => {/* View detail modal can go here */}}
-                >
-                  View Nutrition Details
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem' }}>
+                  Tap for Details <ChevronRight size={16} />
+                </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--bg-soft)', padding: '0.5rem', borderRadius: '16px' }}>
-                <button 
-                  onClick={() => handleUpdateQuantity(meal.id, -1)}
-                  style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-dim)' }}
-                  disabled={!selectedQuantities[meal.id]}
-                >
-                  <Minus size={20} />
-                </button>
-                <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: 800, fontSize: '1.2rem' }}>
-                  {selectedQuantities[meal.id] || 0}
-                </span>
-                <button 
-                  onClick={() => handleUpdateQuantity(meal.id, 1)}
-                  style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--primary)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
-                  disabled={totalSelected >= requiredMeals}
-                >
-                  <Plus size={20} />
-                </button>
+              <div 
+                style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--bg-soft)', padding: '0.5rem', borderRadius: '16px' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {selectionMode === 'single_choice' ? (
+                  <button 
+                    onClick={() => setSelectedQuantities({ [meal.id]: requiredMeals })}
+                    className={selectedQuantities[meal.id] > 0 ? 'btn-primary' : 'btn-secondary'}
+                    style={{ 
+                      padding: '0.75rem 1.5rem', 
+                      borderRadius: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      minWidth: '130px',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {selectedQuantities[meal.id] > 0 ? (
+                      <>
+                        <CheckCircle size={18} /> Selected
+                      </>
+                    ) : (
+                      'Select Meal'
+                    )}
+                  </button>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => handleUpdateQuantity(meal.id, -1)}
+                      style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-dim)' }}
+                      disabled={!selectedQuantities[meal.id]}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: 800, fontSize: '1.2rem' }}>
+                      {selectedQuantities[meal.id] || 0}
+                    </span>
+                    <button 
+                      onClick={() => handleUpdateQuantity(meal.id, 1)}
+                      style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'var(--primary)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
+                      disabled={totalSelected >= requiredMeals}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </>
+                )}
               </div>
             </motion.div>
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedMealForNutrition && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedMealForNutrition(null)}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              className="glass"
+              style={{ 
+                position: 'relative', 
+                width: '100%', 
+                maxWidth: '700px', 
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '0', 
+                borderRadius: '32px',
+                background: 'white',
+                boxShadow: '0 32px 64px -16px rgba(0,0,0,0.3)' 
+              }}
+            >
+              <button 
+                onClick={() => setSelectedMealForNutrition(null)}
+                style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', zIndex: 10, background: 'rgba(255,255,255,0.9)', border: 'none', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-main)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              >
+                <X size={24} />
+              </button>
+
+              <div style={{ 
+                height: '300px', 
+                background: selectedMealForNutrition.image_name ? `url(${getPublicUrl(BUCKETS.MEALS, selectedMealForNutrition.image_name)}) center/cover` : 'var(--bg-soft)',
+                width: '100%'
+              }} />
+
+              <div style={{ padding: '2.5rem' }}>
+                <h2 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '0.75rem' }}>{selectedMealForNutrition.name}</h2>
+                <p style={{ color: 'var(--text-dim)', fontSize: '1.1rem', lineHeight: '1.7', marginBottom: '2.5rem' }}>
+                  {selectedMealForNutrition.description}
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }} className="mobile-stack">
+                  <div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <Flame size={20} color="var(--primary)" />
+                      Nutrition Facts
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div style={{ padding: '1rem', background: 'var(--bg-soft)', borderRadius: '16px' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.2rem' }}>Calories</p>
+                        <p style={{ fontSize: '1.2rem', fontWeight: 900 }}>{selectedMealForNutrition.calories}</p>
+                      </div>
+                      <div style={{ padding: '1rem', background: 'var(--bg-soft)', borderRadius: '16px' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.2rem' }}>Protein</p>
+                        <p style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--primary)' }}>{selectedMealForNutrition.protein_grams}g</p>
+                      </div>
+                      <div style={{ padding: '1rem', background: 'var(--bg-soft)', borderRadius: '16px' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.2rem' }}>Carbs</p>
+                        <p style={{ fontSize: '1.2rem', fontWeight: 900 }}>{selectedMealForNutrition.carbs_grams}g</p>
+                      </div>
+                      <div style={{ padding: '1rem', background: 'var(--bg-soft)', borderRadius: '16px' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.2rem' }}>Fats</p>
+                        <p style={{ fontSize: '1.2rem', fontWeight: 900 }}>{selectedMealForNutrition.fat_grams}g</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1.5rem' }}>Key Ingredients</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                      {selectedMealForNutrition.ingredients?.map((ing: string) => (
+                        <span key={ing} style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '10px', background: 'var(--bg-soft)', color: 'var(--text-main)', fontWeight: 500 }}>
+                          {ing}
+                        </span>
+                      ))}
+                    </div>
+
+                    {selectedMealForNutrition.allergens?.length > 0 && (
+                      <div style={{ marginTop: '2rem' }}>
+                        <h3 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: '0.8rem', color: 'var(--error)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          ⚠️ Contains
+                        </h3>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {selectedMealForNutrition.allergens.map((allergen: string) => (
+                            <span key={allergen} style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', fontWeight: 700 }}>
+                              {allergen}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '3rem', paddingTop: '2.5rem', borderTop: '1px solid var(--primary-light)', display: 'flex', justifyContent: 'center' }}>
+                  <button 
+                    className="btn-primary" 
+                    style={{ padding: '1rem 3rem', fontSize: '1.1rem', borderRadius: '20px' }}
+                    onClick={() => {
+                      if (selectionMode === 'single_choice') {
+                        setSelectedQuantities({ [selectedMealForNutrition.id]: requiredMeals });
+                      } else if (totalSelected < requiredMeals) {
+                        handleUpdateQuantity(selectedMealForNutrition.id, 1);
+                      }
+                      setSelectedMealForNutrition(null);
+                    }}
+                  >
+                    {selectedQuantities[selectedMealForNutrition.id] > 0 ? 'Excellent Choice' : 'Add to Selection'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </Layout>
   )
 }
